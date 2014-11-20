@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Net.Sockets;
+using System.Text.RegularExpressions;
 using System.Threading;
 using IrcClient.Model;
 
@@ -9,7 +10,7 @@ namespace IrcClient
 {
     public class IrcClient : IDisposable
     {
-        #region Variables
+        #region Variables / Properties
         private int _randomnumber;
         private readonly Server _server;
         private readonly User _user;
@@ -93,10 +94,81 @@ namespace IrcClient
             ParseData(readLine);
             Console.Write(readLine);
         }
-
+        /// <summary>
+        /// parses data for IRC Messages, join notice nick etc and fires events accordingly
+        /// </summary>
+        /// <param name="data"></param>
         private void ParseData(string data)
         {
-            
+            string[] Data = data.Split(' ');
+
+            if (data.Length > 4 && data.Substring(0, 3) == "PING")
+            {
+                Send("PONG " + data[1]);
+                return;
+            }
+
+            switch (Data[1])
+            {
+                case "001": //server welcome msg
+                    Send(string.Format("MODE {0} +B", _user.Username));
+                    //todo: implement event for connected
+                    break;
+                case "353": //channel user list
+                    //todo: implement event for updating userlist
+                    break;
+                case "433": //nick is taken!
+                    //todo: implement nick-taken event
+                    break;
+                case "JOIN":    //someone joined the channel
+                    Fire_UserJoined(new UserJoinedEventArgs(Data[2], Data[0].Substring(1, Data[0].IndexOf("!", System.StringComparison.Ordinal) - 1)));
+                    break;
+                case "NICK":    //someone changed username
+                    //todo: implement someone-changed-nick-event
+                    break;
+                case "NOTICE":
+                    //todo: implement notice-event
+                    break;
+                case "PRIVMSG": //someone sent a qry-msg
+                    //todo: implement qry-msg-event
+                    break;
+                case "PART":    //someone closed their client
+                case "QUIT":    //someone left the channel
+                    //todo: implement user-left event
+                    break;
+                default:
+                    //todo: implement debug-event
+                    break;
+            }
+        }
+        /// <summary>
+        /// Strips the message of unnecessary characters, cp from IrcClient-CSharp - thanks!
+        /// </summary>
+        /// <param name="message"></param>
+        /// <returns></returns>
+        private string StripMessage(string message)
+        {
+            // remove IRC Color Codes
+            foreach (Match m in new Regex((char)3 + @"(?:\d{1,2}(?:,\d{1,2})?)?").Matches(message))
+                message = message.Replace(m.Value, "");
+
+            // if there is nothing to strip
+            if (message == "")
+                return "";
+            else if (message.Substring(0, 1) == ":" && message.Length > 2)
+                return message.Substring(1, message.Length - 1);
+            else
+                return message;
+        }
+        /// <summary>
+        /// Joins the array into a string after a specific index, cp from IrcClient-CSharp - thanks!
+        /// </summary>
+        /// <param name="strArray"></param>
+        /// <param name="startIndex"></param>
+        /// <returns></returns>
+        private string JoinArray(string[] strArray, int startIndex)
+        {
+            return StripMessage(String.Join(" ", strArray, startIndex, strArray.Length - startIndex));
         }
         #endregion
     }

@@ -41,7 +41,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ircClient.cs" />
+    <Compile Include="IrcClient.cs" />
+    <Compile Include="Model\Events.cs" />
+    <Compile Include="Model\Server.cs" />
+    <Compile Include="Model\User.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
